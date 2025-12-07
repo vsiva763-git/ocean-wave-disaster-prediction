@@ -1,0 +1,13 @@
+tensorflow>=2.13
+opencv-python
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+joblib
+pillow
+tqdm
+jupyter
+scikit-image
+pyserial
