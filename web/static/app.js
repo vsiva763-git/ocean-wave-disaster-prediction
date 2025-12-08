@@ -172,7 +172,7 @@ function showError(message) {
 }
 
 // Tab switching
-function showTab(tabName) {
+function showTab(tabName, event) {
     // Hide all tab contents
     const tabContents = document.querySelectorAll('.tab-content');
     tabContents.forEach(content => content.classList.remove('active'));
@@ -184,8 +184,10 @@ function showTab(tabName) {
     // Show selected tab
     document.getElementById(`${tabName}-tab`).classList.add('active');
     
-    // Highlight active button
-    event.target.classList.add('active');
+    // Highlight active button (if event provided)
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
 }
 
 // Get earthquake data
