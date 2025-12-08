@@ -1,152 +1,390 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ocean Wave Disaster Prediction System</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>🌊 Ocean Wave Disaster Prediction System</h1>
-            <p class="subtitle">Multi-Modal CNN + LSTM Hybrid Architecture for Real-Time Ocean Monitoring</p>
-        </header>
-
-        <div class="main-content">
-            <!-- Left Panel: Map and Controls -->
-            <div class="left-panel">
-                <div class="control-panel">
-                    <h2>Select Location</h2>
-                    <div class="location-presets">
-                        <button class="preset-btn" onclick="selectPreset('bay-of-bengal')">Bay of Bengal</button>
-                        <button class="preset-btn" onclick="selectPreset('arabian-sea')">Arabian Sea</button>
-                        <button class="preset-btn" onclick="selectPreset('pacific-ocean')">Pacific Ocean</button>
-                        <button class="preset-btn" onclick="selectPreset('atlantic-ocean')">Atlantic Ocean</button>
-                        <button class="preset-btn" onclick="selectPreset('indian-ocean')">Indian Ocean</button>
-                    </div>
-                    
-                    <div class="custom-location">
-                        <h3>Or Enter Custom Coordinates</h3>
-                        <div class="input-group">
-                            <label>Latitude:</label>
-                            <input type="number" id="latitude" step="0.01" placeholder="e.g., 36.78" />
-                        </div>
-                        <div class="input-group">
-                            <label>Longitude:</label>
-                            <input type="number" id="longitude" step="0.01" placeholder="e.g., -122.40" />
-                        </div>
-                        <button class="btn btn-primary" onclick="getPrediction()">Get Prediction</button>
-                    </div>
-                </div>
-
-                <div class="map-container">
-                    <h3>Interactive Map - Click to Select Location</h3>
-                    <div id="map"></div>
-                    <p class="map-info">Click anywhere on the map to get predictions for that location</p>
-                </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🌊 Kanyakumari Ocean Wave & Tsunami Prediction System</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌊</text></svg>"
+    />
+  </head>
+  <body>
+    <div class="dashboard">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-content">
+          <div class="logo">
+            <span class="logo-icon">🌊</span>
+            <div class="logo-text">
+              <h1>Kanyakumari Ocean Prediction System</h1>
+              <p class="subtitle">
+                Multimodal CNN-LSTM Hybrid Architecture for Wave & Tsunami
+                Prediction
+              </p>
             </div>
-
-            <!-- Right Panel: Results -->
-            <div class="right-panel">
-                <!-- Current Prediction -->
-                <div class="results-section">
-                    <h2>Current Ocean Conditions & Prediction</h2>
-                    <div id="loading" class="loading" style="display: none;">
-                        <div class="spinner"></div>
-                        <p>Fetching real-time data...</p>
-                    </div>
-                    <div id="prediction-results" class="prediction-results" style="display: none;">
-                        <div class="location-info">
-                            <h3 id="location-name">Selected Location</h3>
-                            <p id="coordinates"></p>
-                        </div>
-                        
-                        <div class="hazard-level">
-                            <h3>Hazard Level</h3>
-                            <div id="hazard-badge" class="badge"></div>
-                            <div class="hpi-container">
-                                <label>Hazard Probability Index (HPI):</label>
-                                <div class="hpi-bar">
-                                    <div id="hpi-fill" class="hpi-fill"></div>
-                                </div>
-                                <span id="hpi-value" class="hpi-value"></span>
-                            </div>
-                        </div>
-
-                        <div class="probabilities">
-                            <h3>Class Probabilities</h3>
-                            <div class="prob-item">
-                                <span class="prob-label normal">NORMAL</span>
-                                <div class="prob-bar">
-                                    <div id="prob-normal" class="prob-fill normal-fill"></div>
-                                </div>
-                                <span id="prob-normal-val" class="prob-value">0%</span>
-                            </div>
-                            <div class="prob-item">
-                                <span class="prob-label moderate">MODERATE</span>
-                                <div class="prob-bar">
-                                    <div id="prob-moderate" class="prob-fill moderate-fill"></div>
-                                </div>
-                                <span id="prob-moderate-val" class="prob-value">0%</span>
-                            </div>
-                            <div class="prob-item">
-                                <span class="prob-label giant">GIANT</span>
-                                <div class="prob-bar">
-                                    <div id="prob-giant" class="prob-fill giant-fill"></div>
-                                </div>
-                                <span id="prob-giant-val" class="prob-value">0%</span>
-                            </div>
-                        </div>
-
-                        <div class="data-sources">
-                            <h4>Data Sources</h4>
-                            <div id="sources-info"></div>
-                            <p class="timestamp" id="timestamp"></p>
-                        </div>
-                    </div>
-                    <div id="error-message" class="error-message" style="display: none;"></div>
-                </div>
-
-                <!-- Past Tsunami Data -->
-                <div class="results-section">
-                    <h2>Recent Tsunami Activity & Seismic Events</h2>
-                    <div class="tabs">
-                        <button class="tab-btn active" onclick="showTab('earthquakes', event)">Earthquakes</button>
-                        <button class="tab-btn" onclick="showTab('bulletins', event)">Tsunami Bulletins</button>
-                    </div>
-                    
-                    <div id="earthquakes-tab" class="tab-content active">
-                        <div class="filter-controls">
-                            <label>Min Magnitude: <input type="number" id="min-magnitude" value="5.0" step="0.1" /></label>
-                            <label><input type="checkbox" id="tsunami-only" /> Tsunami Risk Only</label>
-                            <button class="btn btn-secondary" onclick="getEarthquakes()">Refresh</button>
-                        </div>
-                        <div id="earthquakes-list" class="events-list">
-                            <p>Click "Refresh" to load recent earthquake data</p>
-                        </div>
-                    </div>
-                    
-                    <div id="bulletins-tab" class="tab-content">
-                        <div class="filter-controls">
-                            <label><input type="checkbox" id="active-only" checked /> Active Warnings Only</label>
-                            <button class="btn btn-secondary" onclick="getBulletins()">Refresh</button>
-                        </div>
-                        <div id="bulletins-list" class="events-list">
-                            <p>Click "Refresh" to load tsunami bulletins</p>
-                        </div>
-                    </div>
-                </div>
+          </div>
+          <div class="header-info">
+            <div class="location-badge">
+              <span class="location-icon">📍</span>
+              <span>Kanyakumari, Tamil Nadu, India</span>
             </div>
+            <div class="update-time" id="update-time">Last Updated: --</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Alert Banner (hidden by default) -->
+        <div id="alert-banner" class="alert-banner" style="display: none">
+          <div class="alert-content">
+            <span class="alert-icon">⚠️</span>
+            <span id="alert-message"></span>
+          </div>
         </div>
 
-        <footer>
-            <p>Powered by Multi-Modal CNN + LSTM Architecture | Data sources: Open-Meteo, NDBC, USGS, NOAA</p>
-        </footer>
+        <!-- Top Row - Key Metrics -->
+        <section class="metrics-row">
+          <!-- Current Wave Height -->
+          <div class="metric-card wave-height">
+            <div class="metric-header">
+              <span class="metric-icon">🌊</span>
+              <span class="metric-title">Current Wave Height</span>
+            </div>
+            <div class="metric-value">
+              <span id="wave-height-value">--</span>
+              <span class="metric-unit">m</span>
+            </div>
+            <div class="metric-condition" id="wave-condition">Loading...</div>
+          </div>
+
+          <!-- Wave Severity Prediction -->
+          <div class="metric-card prediction">
+            <div class="metric-header">
+              <span class="metric-icon">🎯</span>
+              <span class="metric-title">Wave Severity</span>
+            </div>
+            <div class="severity-badge" id="wave-severity">--</div>
+            <div class="confidence-bar">
+              <div class="confidence-label">Confidence:</div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="confidence-fill"></div>
+              </div>
+              <span id="confidence-value">--%</span>
+            </div>
+          </div>
+
+          <!-- Tsunami Risk -->
+          <div class="metric-card tsunami-risk">
+            <div class="metric-header">
+              <span class="metric-icon">🔴</span>
+              <span class="metric-title">Tsunami Risk</span>
+            </div>
+            <div class="risk-badge" id="tsunami-risk">--</div>
+            <div class="hazard-index">
+              <span class="hazard-label">Hazard Index:</span>
+              <span id="hazard-index-value">--</span>
+            </div>
+          </div>
+
+          <!-- Temperature -->
+          <div class="metric-card temperature">
+            <div class="metric-header">
+              <span class="metric-icon">🌡️</span>
+              <span class="metric-title">Temperature</span>
+            </div>
+            <div class="metric-value">
+              <span id="temperature-value">--</span>
+              <span class="metric-unit">°C</span>
+            </div>
+            <div class="metric-sub" id="weather-desc">Loading...</div>
+          </div>
+
+          <!-- Wind Speed -->
+          <div class="metric-card wind">
+            <div class="metric-header">
+              <span class="metric-icon">💨</span>
+              <span class="metric-title">Wind</span>
+            </div>
+            <div class="metric-value">
+              <span id="wind-speed-value">--</span>
+              <span class="metric-unit">km/h</span>
+            </div>
+            <div class="metric-sub" id="wind-direction">--</div>
+          </div>
+        </section>
+
+        <!-- Main Grid -->
+        <section class="main-grid">
+          <!-- Left Column - Map and Forecast -->
+          <div class="left-column">
+            <!-- Map -->
+            <div class="card map-card">
+              <div class="card-header">
+                <h2>📍 Kanyakumari Coastal Region</h2>
+                <span class="coordinates">8.0883°N, 77.5385°E</span>
+              </div>
+              <div id="map" class="map-container"></div>
+              <div class="map-legend">
+                <div class="legend-item">
+                  <span class="legend-dot primary"></span> Kanyakumari
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot secondary"></span> Nearby Monitoring
+                </div>
+              </div>
+            </div>
+
+            <!-- Wave Forecast Chart -->
+            <div class="card forecast-card">
+              <div class="card-header">
+                <h2>📈 48-Hour Wave Forecast</h2>
+                <button class="refresh-btn" onclick="refreshData()">
+                  🔄 Refresh
+                </button>
+              </div>
+              <div class="forecast-container">
+                <canvas id="forecast-chart"></canvas>
+              </div>
+              <div class="forecast-summary">
+                <div class="summary-item">
+                  <span class="summary-label">Max Wave Height:</span>
+                  <span id="max-wave-height" class="summary-value">--</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Expected At:</span>
+                  <span id="max-wave-time" class="summary-value">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column - Details and Alerts -->
+          <div class="right-column">
+            <!-- Prediction Details -->
+            <div class="card prediction-details">
+              <div class="card-header">
+                <h2>🧠 AI Prediction Analysis</h2>
+              </div>
+              <div class="probabilities-grid">
+                <div class="prob-section">
+                  <h3>Wave Severity Probabilities</h3>
+                  <div class="prob-item">
+                    <span class="prob-label normal">NORMAL</span>
+                    <div class="prob-bar-container">
+                      <div class="prob-bar normal-bar" id="prob-normal"></div>
+                    </div>
+                    <span class="prob-value" id="prob-normal-val">--%</span>
+                  </div>
+                  <div class="prob-item">
+                    <span class="prob-label moderate">MODERATE</span>
+                    <div class="prob-bar-container">
+                      <div
+                        class="prob-bar moderate-bar"
+                        id="prob-moderate"
+                      ></div>
+                    </div>
+                    <span class="prob-value" id="prob-moderate-val">--%</span>
+                  </div>
+                  <div class="prob-item">
+                    <span class="prob-label high">HIGH</span>
+                    <div class="prob-bar-container">
+                      <div class="prob-bar high-bar" id="prob-high"></div>
+                    </div>
+                    <span class="prob-value" id="prob-high-val">--%</span>
+                  </div>
+                  <div class="prob-item">
+                    <span class="prob-label extreme">EXTREME</span>
+                    <div class="prob-bar-container">
+                      <div class="prob-bar extreme-bar" id="prob-extreme"></div>
+                    </div>
+                    <span class="prob-value" id="prob-extreme-val">--%</span>
+                  </div>
+                </div>
+                <div class="prob-section">
+                  <h3>Tsunami Risk Probabilities</h3>
+                  <div class="prob-item">
+                    <span class="prob-label none">NONE</span>
+                    <div class="prob-bar-container">
+                      <div
+                        class="prob-bar none-bar"
+                        id="prob-tsunami-none"
+                      ></div>
+                    </div>
+                    <span class="prob-value" id="prob-tsunami-none-val"
+                      >--%</span
+                    >
+                  </div>
+                  <div class="prob-item">
+                    <span class="prob-label low-risk">LOW</span>
+                    <div class="prob-bar-container">
+                      <div class="prob-bar low-bar" id="prob-tsunami-low"></div>
+                    </div>
+                    <span class="prob-value" id="prob-tsunami-low-val"
+                      >--%</span
+                    >
+                  </div>
+                  <div class="prob-item">
+                    <span class="prob-label high-risk">HIGH</span>
+                    <div class="prob-bar-container">
+                      <div
+                        class="prob-bar high-risk-bar"
+                        id="prob-tsunami-high"
+                      ></div>
+                    </div>
+                    <span class="prob-value" id="prob-tsunami-high-val"
+                      >--%</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ocean Parameters -->
+            <div class="card parameters-card">
+              <div class="card-header">
+                <h2>🌊 Ocean Parameters</h2>
+              </div>
+              <div class="parameters-grid">
+                <div class="param-item">
+                  <span class="param-icon">📏</span>
+                  <div class="param-info">
+                    <span class="param-label">Wave Period</span>
+                    <span class="param-value" id="wave-period">-- s</span>
+                  </div>
+                </div>
+                <div class="param-item">
+                  <span class="param-icon">🧭</span>
+                  <div class="param-info">
+                    <span class="param-label">Wave Direction</span>
+                    <span class="param-value" id="wave-direction">--</span>
+                  </div>
+                </div>
+                <div class="param-item">
+                  <span class="param-icon">🌊</span>
+                  <div class="param-info">
+                    <span class="param-label">Swell Height</span>
+                    <span class="param-value" id="swell-height">-- m</span>
+                  </div>
+                </div>
+                <div class="param-item">
+                  <span class="param-icon">💧</span>
+                  <div class="param-info">
+                    <span class="param-label">Humidity</span>
+                    <span class="param-value" id="humidity">--%</span>
+                  </div>
+                </div>
+                <div class="param-item">
+                  <span class="param-icon">🔽</span>
+                  <div class="param-info">
+                    <span class="param-label">Pressure</span>
+                    <span class="param-value" id="pressure">-- hPa</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Earthquakes -->
+            <div class="card earthquakes-card">
+              <div class="card-header">
+                <h2>🔔 Seismic Activity</h2>
+                <span class="badge" id="earthquake-count">0 events</span>
+              </div>
+              <div class="earthquakes-list" id="earthquakes-list">
+                <div class="loading-placeholder">Loading seismic data...</div>
+              </div>
+            </div>
+
+            <!-- Risk Assessment -->
+            <div class="card risk-card">
+              <div class="card-header">
+                <h2>⚠️ Overall Risk Assessment</h2>
+              </div>
+              <div class="risk-assessment">
+                <div class="risk-level-display">
+                  <div class="risk-indicator" id="overall-risk-indicator">
+                    <span id="overall-risk-level">NONE</span>
+                  </div>
+                  <div class="risk-score">
+                    <span class="score-label">Risk Score:</span>
+                    <span class="score-value" id="risk-score">0.00</span>
+                  </div>
+                </div>
+                <div class="recommendation" id="recommendation">
+                  Normal conditions. Safe for regular coastal activities.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Historical Section -->
+        <section class="historical-section">
+          <div class="card">
+            <div class="card-header">
+              <h2>📜 Historical Tsunami Events Affecting Kanyakumari</h2>
+            </div>
+            <div class="historical-grid" id="historical-events">
+              <div class="historical-item major">
+                <div class="event-date">Dec 26, 2004</div>
+                <div class="event-name">Indian Ocean Tsunami</div>
+                <div class="event-details">
+                  <span>Magnitude: 9.1</span>
+                  <span>Wave Height: 10m</span>
+                  <span>Deaths: 802 (Kanyakumari)</span>
+                </div>
+              </div>
+              <div class="historical-item">
+                <div class="event-date">Aug 27, 1883</div>
+                <div class="event-name">Krakatoa Volcanic Tsunami</div>
+                <div class="event-details">
+                  <span>Magnitude: 6.0</span>
+                  <span>Wave Height: 1.5m</span>
+                </div>
+              </div>
+              <div class="historical-item">
+                <div class="event-date">Jun 26, 1941</div>
+                <div class="event-name">Andaman Sea Earthquake</div>
+                <div class="event-details">
+                  <span>Magnitude: 7.7</span>
+                  <span>Wave Height: 1.0m</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="footer-content">
+          <div class="footer-info">
+            <p>🌊 <strong>Ocean Wave Disaster Prediction System</strong></p>
+            <p>Powered by Multimodal CNN-LSTM Hybrid Architecture</p>
+          </div>
+          <div class="footer-sources">
+            <span>Data Sources:</span>
+            <span class="source-tag">Open-Meteo Marine</span>
+            <span class="source-tag">USGS Earthquakes</span>
+            <span class="source-tag">NOAA Tsunami Warnings</span>
+          </div>
+          <div class="footer-status">
+            <span class="status-dot online"></span>
+            <span>System Online</span>
+          </div>
+        </div>
+      </footer>
     </div>
 
+    <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/app.js"></script>
-</body>
+  </body>
 </html>

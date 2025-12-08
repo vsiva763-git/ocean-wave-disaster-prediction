@@ -1,336 +1,586 @@
-// Configuration
-const API_BASE_URL = window.location.origin;
-const DEFAULT_CENTER = [20.5937, 78.9629]; // India center
-const DEFAULT_ZOOM = 4;
+/**
+ * Kanyakumari Ocean Wave Prediction System
+ * Frontend JavaScript Application
+ *
+ * Features:
+ * - Real-time data fetching and display
+ * - Interactive map with Leaflet
+ * - Wave forecast chart with Chart.js
+ * - Auto-refresh every 5 minutes
+ */
 
-// Location presets
-const LOCATION_PRESETS = {
-    'bay-of-bengal': { lat: 15.0, lon: 88.0, zoom: 5, name: 'Bay of Bengal' },
-    'arabian-sea': { lat: 15.0, lon: 65.0, zoom: 5, name: 'Arabian Sea' },
-    'pacific-ocean': { lat: 0.0, lon: -140.0, zoom: 3, name: 'Pacific Ocean' },
-    'atlantic-ocean': { lat: 30.0, lon: -40.0, zoom: 3, name: 'Atlantic Ocean' },
-    'indian-ocean': { lat: -20.0, lon: 75.0, zoom: 4, name: 'Indian Ocean' }
+// ============================================================================
+// Configuration
+// ============================================================================
+
+const CONFIG = {
+  API_BASE: window.location.origin,
+  KANYAKUMARI: { lat: 8.0883, lon: 77.5385 },
+  REFRESH_INTERVAL: 300000, // 5 minutes
+  MAP_ZOOM: 8,
+  MONITORING_POINTS: {
+    kanyakumari: { lat: 8.0883, lon: 77.5385, name: "Kanyakumari" },
+    kovalam: { lat: 8.3684, lon: 77.0214, name: "Kovalam" },
+    tuticorin: { lat: 8.7642, lon: 78.1348, name: "Tuticorin" },
+    rameshwaram: { lat: 9.2876, lon: 79.3129, name: "Rameshwaram" },
+    trivandrum: { lat: 8.5074, lon: 76.9558, name: "Thiruvananthapuram" },
+  },
 };
 
-// Global variables
-let map;
-let currentMarker;
-let selectedLocation = null;
+// ============================================================================
+// Global Variables
+// ============================================================================
 
-// Initialize map on page load
-document.addEventListener('DOMContentLoaded', function() {
-    initMap();
-    console.log('Ocean Wave Disaster Prediction System initialized');
+let map = null;
+let forecastChart = null;
+let refreshTimer = null;
+let currentData = null;
+
+// ============================================================================
+// Initialization
+// ============================================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("🌊 Kanyakumari Ocean Prediction System - Initializing...");
+
+  initMap();
+  initChart();
+
+  // Initial data fetch
+  refreshData();
+
+  // Set up auto-refresh
+  refreshTimer = setInterval(refreshData, CONFIG.REFRESH_INTERVAL);
+
+  console.log("✅ System initialized");
 });
 
-// Initialize Leaflet map
+// ============================================================================
+// Map Initialization
+// ============================================================================
+
 function initMap() {
-    map = L.map('map').setView(DEFAULT_CENTER, DEFAULT_ZOOM);
-    
-    // Add OpenStreetMap tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
-    }).addTo(map);
-    
-    // Add click event listener
-    map.on('click', function(e) {
-        const lat = e.latlng.lat.toFixed(2);
-        const lon = e.latlng.lng.toFixed(2);
-        selectLocation(lat, lon);
-    });
-}
+  // Create map centered on Kanyakumari
+  map = L.map("map", {
+    center: [CONFIG.KANYAKUMARI.lat, CONFIG.KANYAKUMARI.lon],
+    zoom: CONFIG.MAP_ZOOM,
+    zoomControl: true,
+  });
 
-// Select location preset
-function selectPreset(presetId) {
-    const preset = LOCATION_PRESETS[presetId];
-    if (!preset) return;
-    
-    // Update map view
-    map.setView([preset.lat, preset.lon], preset.zoom);
-    
-    // Select the location
-    selectLocation(preset.lat, preset.lon, preset.name);
-}
+  // Add dark-themed tile layer
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+    attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+    maxZoom: 19,
+  }).addTo(map);
 
-// Select a location on the map
-function selectLocation(lat, lon, name = null) {
-    lat = parseFloat(lat);
-    lon = parseFloat(lon);
-    
-    // Update input fields
-    document.getElementById('latitude').value = lat;
-    document.getElementById('longitude').value = lon;
-    
-    // Update marker
-    if (currentMarker) {
-        map.removeLayer(currentMarker);
+  // Add main marker for Kanyakumari
+  const mainMarker = L.marker(
+    [CONFIG.KANYAKUMARI.lat, CONFIG.KANYAKUMARI.lon],
+    {
+      icon: createCustomIcon("#ef4444", "🌊"),
     }
-    currentMarker = L.marker([lat, lon]).addTo(map);
-    currentMarker.bindPopup(`<b>${name || 'Selected Location'}</b><br>Lat: ${lat}, Lon: ${lon}`).openPopup();
-    
-    // Store selected location
-    selectedLocation = { lat, lon, name };
-    
-    // Automatically get prediction
-    getPrediction();
-}
+  ).addTo(map);
 
-// Get prediction for selected location
-async function getPrediction() {
-    const lat = parseFloat(document.getElementById('latitude').value);
-    const lon = parseFloat(document.getElementById('longitude').value);
-    
-    if (isNaN(lat) || isNaN(lon)) {
-        showError('Please enter valid coordinates or select a location on the map');
-        return;
-    }
-    
-    // Validate coordinate ranges
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-        showError('Coordinates out of range. Latitude: -90 to 90, Longitude: -180 to 180');
-        return;
-    }
-    
-    // Show loading
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('prediction-results').style.display = 'none';
-    document.getElementById('error-message').style.display = 'none';
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/predict?latitude=${lat}&longitude=${lon}&use_ndbc=true`);
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Failed to fetch prediction');
-        }
-        
-        const data = await response.json();
-        displayPrediction(data);
-        
-    } catch (error) {
-        console.error('Prediction error:', error);
-        showError(`Error: ${error.message}`);
-    } finally {
-        document.getElementById('loading').style.display = 'none';
-    }
-}
+  mainMarker
+    .bindPopup(
+      `
+        <div style="text-align: center; padding: 5px;">
+            <strong style="font-size: 14px;">📍 Kanyakumari</strong><br>
+            <span style="font-size: 12px; color: #666;">
+                Southernmost tip of India<br>
+                8.0883°N, 77.5385°E
+            </span>
+        </div>
+    `
+    )
+    .openPopup();
 
-// Display prediction results
-function displayPrediction(data) {
-    // Update location info
-    const locationName = selectedLocation?.name || 'Selected Location';
-    document.getElementById('location-name').textContent = locationName;
-    document.getElementById('coordinates').textContent = 
-        `Latitude: ${data.location.latitude}°, Longitude: ${data.location.longitude}°`;
-    
-    // Update hazard level badge
-    const hazardBadge = document.getElementById('hazard-badge');
-    hazardBadge.textContent = data.predicted_class;
-    hazardBadge.className = 'badge ' + data.predicted_class.toLowerCase();
-    
-    // Update HPI
-    const hpi = data.hazard_probability_index;
-    document.getElementById('hpi-fill').style.width = (hpi * 100) + '%';
-    document.getElementById('hpi-value').textContent = hpi.toFixed(3);
-    
-    // Update probabilities
-    const probs = data.probabilities;
-    updateProbabilityBar('normal', probs.NORMAL);
-    updateProbabilityBar('moderate', probs.MODERATE);
-    updateProbabilityBar('giant', probs.GIANT);
-    
-    // Update data sources
-    const sourcesInfo = document.getElementById('sources-info');
-    sourcesInfo.innerHTML = `
-        <p>✓ Open-Meteo Marine API: ${data.data_sources.open_meteo ? 'Active' : 'Unavailable'}</p>
-        <p>✓ NDBC Buoy Data: ${data.data_sources.ndbc ? 'Active' : 'Unavailable'}</p>
-    `;
-    
-    // Update timestamp
-    const timestamp = new Date(data.timestamp).toLocaleString();
-    document.getElementById('timestamp').textContent = `Last updated: ${timestamp}`;
-    
-    // Show results
-    document.getElementById('prediction-results').style.display = 'block';
-}
+  // Add monitoring points
+  Object.entries(CONFIG.MONITORING_POINTS).forEach(([key, point]) => {
+    if (key !== "kanyakumari") {
+      const marker = L.circleMarker([point.lat, point.lon], {
+        radius: 8,
+        fillColor: "#06b6d4",
+        color: "#0891b2",
+        weight: 2,
+        fillOpacity: 0.8,
+      }).addTo(map);
 
-// Update probability bar
-function updateProbabilityBar(type, value) {
-    const percentage = (value * 100).toFixed(1);
-    document.getElementById(`prob-${type}`).style.width = percentage + '%';
-    document.getElementById(`prob-${type}-val`).textContent = percentage + '%';
-}
-
-// Show error message
-function showError(message) {
-    const errorDiv = document.getElementById('error-message');
-    errorDiv.textContent = message;
-    errorDiv.style.display = 'block';
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('prediction-results').style.display = 'none';
-}
-
-// Tab switching
-function showTab(tabName, event) {
-    // Hide all tab contents
-    const tabContents = document.querySelectorAll('.tab-content');
-    tabContents.forEach(content => content.classList.remove('active'));
-    
-    // Remove active class from all tab buttons
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    tabButtons.forEach(btn => btn.classList.remove('active'));
-    
-    // Show selected tab
-    document.getElementById(`${tabName}-tab`).classList.add('active');
-    
-    // Highlight active button (if event provided)
-    if (event && event.target) {
-        event.target.classList.add('active');
-    }
-}
-
-// Get earthquake data
-async function getEarthquakes() {
-    const minMagnitude = parseFloat(document.getElementById('min-magnitude').value) || 5.0;
-    const tsunamiOnly = document.getElementById('tsunami-only').checked;
-    
-    const listDiv = document.getElementById('earthquakes-list');
-    listDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading earthquake data...</p></div>';
-    
-    try {
-        let url = `${API_BASE_URL}/earthquakes?min_magnitude=${minMagnitude}&hours_back=24`;
-        if (tsunamiOnly) {
-            url += '&tsunami_risk_only=true';
-        }
-        
-        // Add target location if selected
-        if (selectedLocation) {
-            url += `&target_lat=${selectedLocation.lat}&target_lon=${selectedLocation.lon}`;
-        }
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch earthquake data');
-        }
-        
-        const data = await response.json();
-        displayEarthquakes(data);
-        
-    } catch (error) {
-        console.error('Earthquake fetch error:', error);
-        listDiv.innerHTML = `<p class="error-message">Error: ${error.message}</p>`;
-    }
-}
-
-// Display earthquake data
-function displayEarthquakes(data) {
-    const listDiv = document.getElementById('earthquakes-list');
-    
-    if (data.count === 0) {
-        listDiv.innerHTML = '<p>No earthquakes found matching the criteria.</p>';
-        return;
-    }
-    
-    let html = `<p><strong>Found ${data.count} earthquake(s) in the last 24 hours</strong></p>`;
-    
-    data.events.forEach(event => {
-        const time = new Date(event.time).toLocaleString();
-        const tsunamiFlag = event.tsunami_flag === 1 ? 
-            '<span class="tsunami-flag">⚠️ TSUNAMI RISK</span>' : '';
-        const eta = event.tsunami_eta ? 
-            `<p><strong>Estimated Tsunami Arrival:</strong> ${event.tsunami_eta.eta_minutes.toFixed(0)} minutes (${event.tsunami_eta.distance_km.toFixed(0)} km away)</p>` : '';
-        
-        html += `
-            <div class="event-item">
-                <div class="event-header">
-                    <span class="event-magnitude">M${event.magnitude}</span>
-                    ${tsunamiFlag}
+      marker.bindPopup(`
+                <div style="text-align: center;">
+                    <strong>${point.name}</strong><br>
+                    <span style="font-size: 11px;">${point.lat.toFixed(
+                      4
+                    )}°N, ${point.lon.toFixed(4)}°E</span>
                 </div>
-                <div class="event-location">${event.place}</div>
-                <div class="event-details">
-                    <p>Location: ${event.latitude.toFixed(2)}°, ${event.longitude.toFixed(2)}°</p>
-                    <p>Depth: ${event.depth_km.toFixed(1)} km</p>
-                    ${eta}
-                </div>
-                <div class="event-time">${time}</div>
-                <a href="${event.url}" target="_blank" style="font-size: 0.85em; color: #667eea;">View Details →</a>
+            `);
+    }
+  });
+
+  // Add ocean region overlay
+  const oceanBounds = [
+    [5.0, 74.0],
+    [12.0, 82.0],
+  ];
+
+  L.rectangle(oceanBounds, {
+    color: "#3b82f6",
+    weight: 2,
+    fillOpacity: 0.05,
+    dashArray: "10, 10",
+  }).addTo(map);
+}
+
+function createCustomIcon(color, emoji) {
+  return L.divIcon({
+    className: "custom-marker",
+    html: `<div style="
+            background: ${color};
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border: 3px solid white;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        ">${emoji}</div>`,
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+  });
+}
+
+// ============================================================================
+// Chart Initialization
+// ============================================================================
+
+function initChart() {
+  const ctx = document.getElementById("forecast-chart");
+  if (!ctx) return;
+
+  forecastChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: "Wave Height (m)",
+          data: [],
+          borderColor: "#06b6d4",
+          backgroundColor: "rgba(6, 182, 212, 0.1)",
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+        },
+        {
+          label: "Swell Height (m)",
+          data: [],
+          borderColor: "#8b5cf6",
+          backgroundColor: "rgba(139, 92, 246, 0.1)",
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: "index",
+        intersect: false,
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: "top",
+          labels: {
+            color: "#a0aec0",
+            usePointStyle: true,
+            padding: 15,
+          },
+        },
+        tooltip: {
+          backgroundColor: "#132743",
+          titleColor: "#fff",
+          bodyColor: "#a0aec0",
+          borderColor: "#1e3a5f",
+          borderWidth: 1,
+          padding: 12,
+          displayColors: true,
+        },
+      },
+      scales: {
+        x: {
+          display: true,
+          grid: {
+            color: "rgba(30, 58, 95, 0.5)",
+            drawBorder: false,
+          },
+          ticks: {
+            color: "#718096",
+            maxTicksLimit: 12,
+          },
+        },
+        y: {
+          display: true,
+          beginAtZero: true,
+          grid: {
+            color: "rgba(30, 58, 95, 0.5)",
+            drawBorder: false,
+          },
+          ticks: {
+            color: "#718096",
+            callback: (value) => value + "m",
+          },
+        },
+      },
+    },
+  });
+}
+
+// ============================================================================
+// Data Fetching
+// ============================================================================
+
+async function refreshData() {
+  console.log("🔄 Refreshing data...");
+
+  try {
+    // Fetch current conditions and prediction
+    const response = await fetch(
+      `${CONFIG.API_BASE}/api/predict?include_forecast=true&forecast_hours=48`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    currentData = data;
+
+    // Update all UI components
+    updateCurrentConditions(data);
+    updatePrediction(data.prediction);
+    updateForecastChart(data.forecast);
+    updateRiskAssessment(data.overall_risk);
+    updateTimestamp();
+
+    // Fetch earthquake data separately
+    fetchEarthquakes();
+
+    console.log("✅ Data refresh complete");
+  } catch (error) {
+    console.error("❌ Error fetching data:", error);
+    showAlert(`Data fetch failed: ${error.message}`);
+  }
+}
+
+async function fetchEarthquakes() {
+  try {
+    const response = await fetch(
+      `${CONFIG.API_BASE}/api/earthquakes?min_magnitude=5&hours_back=168`
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      updateEarthquakesList(data);
+    }
+  } catch (error) {
+    console.error("Error fetching earthquakes:", error);
+  }
+}
+
+// ============================================================================
+// UI Update Functions
+// ============================================================================
+
+function updateCurrentConditions(data) {
+  const current = data.current_conditions || {};
+  const marine = current.marine || {};
+  const weather = current.weather || {};
+
+  // Wave conditions
+  updateElement("wave-height-value", formatValue(marine.wave_height_m, 1));
+  updateElement("wave-condition", marine.wave_condition_display || "Unknown");
+  updateElement("wave-period", formatValue(marine.wave_period_s, 1) + " s");
+  updateElement("wave-direction", marine.wave_direction_name || "--");
+  updateElement("swell-height", formatValue(marine.swell_height_m, 1) + " m");
+
+  // Weather conditions
+  updateElement("temperature-value", formatValue(weather.temperature_c, 0));
+  updateElement("weather-desc", weather.conditions || "Unknown");
+  updateElement("wind-speed-value", formatValue(weather.wind_speed_kmh, 0));
+  updateElement("wind-direction", weather.wind_direction || "--");
+  updateElement("humidity", formatValue(weather.humidity_percent, 0) + "%");
+  updateElement("pressure", formatValue(weather.pressure_hpa, 0) + " hPa");
+
+  // Max wave forecast
+  const maxWave = data.max_wave_forecast || {};
+  updateElement("max-wave-height", formatValue(maxWave.height_m, 1) + " m");
+
+  if (maxWave.expected_time) {
+    const maxTime = new Date(maxWave.expected_time);
+    updateElement(
+      "max-wave-time",
+      maxTime.toLocaleString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "numeric",
+        month: "short",
+      })
+    );
+  }
+}
+
+function updatePrediction(prediction) {
+  if (!prediction) return;
+
+  // Wave severity
+  const severity = prediction.wave_severity || "NORMAL";
+  const severityElement = document.getElementById("wave-severity");
+  if (severityElement) {
+    severityElement.textContent = severity;
+    severityElement.className = "severity-badge " + severity.toLowerCase();
+  }
+
+  // Tsunami risk
+  const tsunamiRisk = prediction.tsunami_risk || "NONE";
+  const riskElement = document.getElementById("tsunami-risk");
+  if (riskElement) {
+    riskElement.textContent = tsunamiRisk;
+    riskElement.className = "risk-badge " + tsunamiRisk.toLowerCase();
+  }
+
+  // Hazard index
+  const hazardIndex = prediction.hazard_index || 0;
+  updateElement("hazard-index-value", hazardIndex.toFixed(3));
+
+  // Confidence
+  const confidence = (prediction.confidence || 0) * 100;
+  updateElement("confidence-value", confidence.toFixed(0) + "%");
+  const confidenceFill = document.getElementById("confidence-fill");
+  if (confidenceFill) {
+    confidenceFill.style.width = confidence + "%";
+  }
+
+  // Wave probabilities
+  const waveProbs = prediction.wave_probabilities || {};
+  updateProbabilityBar("prob-normal", waveProbs.NORMAL || 0);
+  updateProbabilityBar("prob-moderate", waveProbs.MODERATE || 0);
+  updateProbabilityBar("prob-high", waveProbs.HIGH || 0);
+  updateProbabilityBar("prob-extreme", waveProbs.EXTREME || 0);
+
+  // Tsunami probabilities
+  const tsunamiProbs = prediction.tsunami_probabilities || {};
+  updateProbabilityBar("prob-tsunami-none", tsunamiProbs.NONE || 0);
+  updateProbabilityBar("prob-tsunami-low", tsunamiProbs.LOW || 0);
+  updateProbabilityBar("prob-tsunami-high", tsunamiProbs.HIGH || 0);
+
+  // Show alert for high risk
+  if (severity === "EXTREME" || tsunamiRisk === "HIGH") {
+    showAlert(
+      `⚠️ ${
+        severity === "EXTREME"
+          ? "EXTREME wave conditions detected!"
+          : "HIGH tsunami risk detected!"
+      }`
+    );
+  } else {
+    hideAlert();
+  }
+}
+
+function updateProbabilityBar(elementId, value) {
+  const bar = document.getElementById(elementId);
+  const valueEl = document.getElementById(elementId + "-val");
+
+  if (bar) {
+    bar.style.width = value * 100 + "%";
+  }
+  if (valueEl) {
+    valueEl.textContent = (value * 100).toFixed(1) + "%";
+  }
+}
+
+function updateForecastChart(forecast) {
+  if (!forecastChart || !forecast || !forecast.length) return;
+
+  const labels = [];
+  const waveHeights = [];
+  const swellHeights = [];
+
+  forecast.forEach((point, index) => {
+    if (index % 2 === 0) {
+      // Show every 2 hours
+      const time = new Date(point.time);
+      labels.push(
+        time.toLocaleString("en-IN", {
+          hour: "2-digit",
+          day: "numeric",
+          month: "short",
+        })
+      );
+      waveHeights.push(point.wave_height || 0);
+      swellHeights.push(point.swell_wave_height || 0);
+    }
+  });
+
+  forecastChart.data.labels = labels;
+  forecastChart.data.datasets[0].data = waveHeights;
+  forecastChart.data.datasets[1].data = swellHeights;
+  forecastChart.update("none");
+}
+
+function updateEarthquakesList(data) {
+  const listElement = document.getElementById("earthquakes-list");
+  const countElement = document.getElementById("earthquake-count");
+
+  if (!listElement) return;
+
+  const events = data.events || [];
+
+  // Update count badge
+  if (countElement) {
+    countElement.textContent = `${events.length} events`;
+  }
+
+  if (events.length === 0) {
+    listElement.innerHTML = `
+            <div class="loading-placeholder">
+                ✅ No significant seismic activity in the last 7 days
             </div>
         `;
-    });
-    
-    listDiv.innerHTML = html;
-}
+    return;
+  }
 
-// Get tsunami bulletins
-async function getBulletins() {
-    const activeOnly = document.getElementById('active-only').checked;
-    
-    const listDiv = document.getElementById('bulletins-list');
-    listDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading tsunami bulletins...</p></div>';
-    
-    try {
-        let url = `${API_BASE_URL}/bulletins?sources=ptwc,ntwc`;
-        if (activeOnly) {
-            url += '&active_only=true';
-        }
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch tsunami bulletins');
-        }
-        
-        const data = await response.json();
-        displayBulletins(data);
-        
-    } catch (error) {
-        console.error('Bulletins fetch error:', error);
-        listDiv.innerHTML = `<p class="error-message">Error: ${error.message}</p>`;
-    }
-}
+  // Show top 5 events
+  const html = events
+    .slice(0, 5)
+    .map((event) => {
+      const magClass =
+        event.magnitude >= 7
+          ? "high"
+          : event.magnitude >= 6
+          ? "moderate"
+          : "low";
+      const riskClass = event.tsunami_risk_level || "none";
 
-// Display tsunami bulletins
-function displayBulletins(data) {
-    const listDiv = document.getElementById('bulletins-list');
-    
-    if (data.count === 0) {
-        listDiv.innerHTML = '<p>No tsunami bulletins found. ✓ All clear!</p>';
-        return;
-    }
-    
-    let html = `<p><strong>Found ${data.count} bulletin(s)</strong></p>`;
-    
-    data.bulletins.forEach(bulletin => {
-        const time = new Date(bulletin.published).toLocaleString();
-        const severityClass = bulletin.severity.toLowerCase();
-        
-        html += `
-            <div class="bulletin-item ${severityClass}">
-                <span class="bulletin-severity ${severityClass}">${bulletin.severity}</span>
-                <div class="bulletin-title">${bulletin.title}</div>
-                <div class="bulletin-summary">${bulletin.summary}</div>
-                <div class="bulletin-link">
-                    <a href="${bulletin.link}" target="_blank">Read full bulletin →</a>
+      return `
+            <div class="earthquake-item">
+                <div class="eq-magnitude ${magClass}">${
+        event.magnitude?.toFixed(1) || "--"
+      }</div>
+                <div class="eq-details">
+                    <div class="eq-location">${
+                      event.place || "Unknown location"
+                    }</div>
+                    <div class="eq-info">
+                        <span>📏 ${
+                          event.distance_km?.toFixed(0) || "--"
+                        } km away</span>
+                        <span>📅 ${formatDate(event.time)}</span>
+                    </div>
                 </div>
-                <div class="event-time">Published: ${time} | Source: ${bulletin.source.toUpperCase()}</div>
+                <div class="eq-risk ${riskClass}">${riskClass.toUpperCase()}</div>
             </div>
         `;
-    });
-    
-    listDiv.innerHTML = html;
+    })
+    .join("");
+
+  listElement.innerHTML = html;
 }
 
-// Auto-refresh data every 5 minutes (optional)
-function startAutoRefresh() {
-    setInterval(() => {
-        if (selectedLocation) {
-            console.log('Auto-refreshing prediction data...');
-            getPrediction();
-        }
-    }, 5 * 60 * 1000); // 5 minutes
+function updateRiskAssessment(risk) {
+  if (!risk) return;
+
+  const level = risk.risk_level || "none";
+  const score = risk.risk_score || 0;
+  const recommendation = risk.recommendation || "Normal conditions.";
+
+  // Update risk indicator
+  const indicator = document.getElementById("overall-risk-indicator");
+  const levelElement = document.getElementById("overall-risk-level");
+
+  if (indicator) {
+    indicator.className = "risk-indicator " + level;
+  }
+  if (levelElement) {
+    levelElement.textContent = level.toUpperCase();
+  }
+
+  // Update score
+  updateElement("risk-score", score.toFixed(2));
+
+  // Update recommendation
+  updateElement("recommendation", recommendation);
 }
 
-// Uncomment to enable auto-refresh
-// startAutoRefresh();
+function updateTimestamp() {
+  const timeElement = document.getElementById("update-time");
+  if (timeElement) {
+    const now = new Date();
+    timeElement.textContent = `Last Updated: ${now.toLocaleString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      day: "numeric",
+      month: "short",
+    })}`;
+  }
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+function updateElement(id, value) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.textContent = value;
+  }
+}
+
+function formatValue(value, decimals = 1) {
+  if (value === null || value === undefined) return "--";
+  return Number(value).toFixed(decimals);
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "--";
+  const date = new Date(dateString);
+  return date.toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function showAlert(message) {
+  const banner = document.getElementById("alert-banner");
+  const messageEl = document.getElementById("alert-message");
+
+  if (banner && messageEl) {
+    messageEl.textContent = message;
+    banner.style.display = "block";
+  }
+}
+
+function hideAlert() {
+  const banner = document.getElementById("alert-banner");
+  if (banner) {
+    banner.style.display = "none";
+  }
+}
+
+// ============================================================================
+// Export Functions for HTML
+// ============================================================================
+
+window.refreshData = refreshData;

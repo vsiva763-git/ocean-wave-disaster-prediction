@@ -1,17 +1,51 @@
-tensorflow>=2.13
-opencv-python
-pandas
-numpy
-matplotlib
-seaborn
-scikit-learn
-joblib
-pillow
-tqdm
-jupyter
-scikit-image
-pyserial
+# ============================================================================
+# Kanyakumari Ocean Wave & Tsunami Prediction System
+# Python Dependencies
+# ============================================================================
+
+# Deep Learning Framework
+tensorflow>=2.13.0
+
+# Data Processing & Analysis
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Machine Learning
+scikit-learn>=1.3.0
+joblib>=1.3.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.15.0
+
+# Image Processing
+opencv-python>=4.8.0
+pillow>=10.0.0
+scikit-image>=0.21.0
+
+# Web Framework & API
 fastapi>=0.100.0
 uvicorn[standard]>=0.23.0
+
+# HTTP Client
 httpx>=0.24.0
+
+# RSS/Atom Feed Parsing
 feedparser>=6.0.0
+
+# Utilities
+tqdm>=4.65.0
+python-dotenv>=1.0.0
+
+# Jupyter Notebooks (optional)
+jupyter>=1.0.0
+ipykernel>=6.25.0
+
+# Arduino/Serial Communication (optional)
+pyserial>=3.5
+
+# Testing (optional)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0

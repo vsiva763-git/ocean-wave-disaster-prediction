@@ -1,42 +1,62 @@
 #!/bin/bash
-# Quick start script for Ocean Wave Disaster Prediction Web Interface
+# ============================================================================
+# Kanyakumari Ocean Wave & Tsunami Prediction System
+# Linux/Mac Startup Script
+# ============================================================================
 
-set -e
-
-echo "🌊 Ocean Wave Disaster Prediction System - Quick Start"
-echo "======================================================="
+echo ""
+echo "================================================================================"
+echo "   🌊 KANYAKUMARI OCEAN WAVE & TSUNAMI PREDICTION SYSTEM"
+echo "================================================================================"
+echo ""
+echo "   📍 Location: Kanyakumari, Tamil Nadu, India"
+echo "   🌐 Web Interface will be available at: http://localhost:8000"
+echo "   📚 API Documentation: http://localhost:8000/docs"
+echo ""
+echo "================================================================================"
 echo ""
 
-# Check if running from project root
-if [ ! -f "requirements.txt" ]; then
-    echo "Error: Please run this script from the project root directory"
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Check Python
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Python 3 is not installed!"
+    echo "Please install Python 3.10+ and try again."
     exit 1
 fi
 
-# Check Python version
-echo "Checking Python version..."
-python_version=$(python3 --version 2>&1 | awk '{print $2}')
-echo "✓ Python $python_version"
-echo ""
+# Check/activate virtual environment
+if [ -d "venv" ]; then
+    echo "📦 Activating virtual environment..."
+    source venv/bin/activate
+else
+    echo "⚠️  No virtual environment found. Using system Python."
+    echo "   Consider creating one with: python3 -m venv venv"
+fi
 
 # Install dependencies if needed
-echo "Checking dependencies..."
-if python3 -c "import fastapi, uvicorn" 2>/dev/null; then
-    echo "✓ Dependencies already installed"
-else
-    echo "Installing dependencies..."
-    pip install -q -r requirements.txt
-    echo "✓ Dependencies installed"
-fi
 echo ""
+echo "📋 Checking dependencies..."
+if ! python3 -c "import fastapi" &> /dev/null; then
+    echo "📥 Installing dependencies..."
+    pip install -r requirements.txt
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to install dependencies!"
+        exit 1
+    fi
+fi
 
 # Start the server
-echo "Starting web server..."
-echo "→ Web interface will be available at: http://localhost:8000"
-echo "→ API documentation will be available at: http://localhost:8000/docs"
 echo ""
-echo "Press Ctrl+C to stop the server"
+echo "🚀 Starting the Ocean Wave Prediction Server..."
+echo ""
+echo "   Press Ctrl+C to stop the server."
+echo ""
+echo "================================================================================"
 echo ""
 
+# Run the API server
 cd src
-python3 -m uvicorn api:app --host 0.0.0.0 --port 8000
+python3 -m uvicorn kanyakumari_api:app --host 0.0.0.0 --port 8000 --reload

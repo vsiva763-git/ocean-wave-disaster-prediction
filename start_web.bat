@@ -1,48 +1,70 @@
 @echo off
-REM Quick start script for Ocean Wave Disaster Prediction Web Interface (Windows)
+REM ============================================================================
+REM Kanyakumari Ocean Wave & Tsunami Prediction System
+REM Windows Startup Script
+REM ============================================================================
 
 echo.
-echo =======================================================
-echo Ocean Wave Disaster Prediction System - Quick Start
-echo =======================================================
+echo ================================================================================
+echo    🌊 KANYAKUMARI OCEAN WAVE ^& TSUNAMI PREDICTION SYSTEM
+echo ================================================================================
+echo.
+echo    📍 Location: Kanyakumari, Tamil Nadu, India
+echo    🌐 Web Interface will be available at: http://localhost:8000
+echo    📚 API Documentation: http://localhost:8000/docs
+echo.
+echo ================================================================================
 echo.
 
-REM Check if running from project root
-if not exist "requirements.txt" (
-    echo Error: Please run this script from the project root directory
-    exit /b 1
-)
+REM Change to project directory
+cd /d "%~dp0"
 
-REM Check Python
-echo Checking Python installation...
+REM Check if Python is available
 python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Error: Python is not installed or not in PATH
+if errorlevel 1 (
+    echo ❌ Python is not installed or not in PATH!
+    echo Please install Python 3.10+ and try again.
+    pause
     exit /b 1
 )
-python --version
-echo.
+
+REM Check if virtual environment exists
+if exist "venv\Scripts\activate.bat" (
+    echo 📦 Activating virtual environment...
+    call venv\Scripts\activate.bat
+) else (
+    echo ⚠️  No virtual environment found. Using system Python.
+    echo    Consider creating one with: python -m venv venv
+)
 
 REM Install dependencies if needed
-echo Checking dependencies...
-python -c "import fastapi, uvicorn" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Installing dependencies...
-    pip install -q -r requirements.txt
-    echo Dependencies installed
-) else (
-    echo Dependencies already installed
-)
 echo.
+echo 📋 Checking dependencies...
+pip show fastapi >nul 2>&1
+if errorlevel 1 (
+    echo 📥 Installing dependencies...
+    pip install -r requirements.txt
+    if errorlevel 1 (
+        echo ❌ Failed to install dependencies!
+        pause
+        exit /b 1
+    )
+)
 
 REM Start the server
-echo Starting web server...
 echo.
-echo Web interface will be available at: http://localhost:8000
-echo API documentation will be available at: http://localhost:8000/docs
+echo 🚀 Starting the Ocean Wave Prediction Server...
 echo.
-echo Press Ctrl+C to stop the server
+echo    Press Ctrl+C to stop the server.
+echo.
+echo ================================================================================
 echo.
 
+REM Run the API server
 cd src
-python -m uvicorn api:app --host 0.0.0.0 --port 8000
+python -m uvicorn kanyakumari_api:app --host 0.0.0.0 --port 8000 --reload
+
+REM If server exits, pause before closing
+echo.
+echo Server stopped.
+pause
