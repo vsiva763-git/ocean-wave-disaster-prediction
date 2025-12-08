@@ -11,3 +11,7 @@ tqdm
 jupyter
 scikit-image
 pyserial
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+httpx>=0.24.0
+feedparser>=6.0.0
