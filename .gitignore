@@ -27,11 +27,17 @@ ENV/
 .venv
 
 # IDEs
-.vscode/
 .idea/
 *.swp
 *.swo
 *~
+# Allow .vscode config files but ignore local settings
+!.vscode/
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
 
 # Jupyter Notebook
 .ipynb_checkpoints

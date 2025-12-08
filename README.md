@@ -105,6 +105,86 @@ http://localhost:8000
 
 See `web/README.md` for detailed web interface documentation.
 
+### Option 3: Running in VS Code
+
+For development and debugging in Visual Studio Code:
+
+1. **Open the project in VS Code:**
+   ```bash
+   code .
+   ```
+
+2. **Install Python extension:**
+   - Open Extensions (Ctrl+Shift+X / Cmd+Shift+X)
+   - Search for "Python" by Microsoft and install it
+
+3. **Create a virtual environment:**
+   - Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
+   - Type "Python: Create Environment"
+   - Select "Venv"
+   - Choose your Python interpreter
+   - Select `requirements.txt` to install dependencies
+
+4. **Run the web server:**
+   
+   **Method A: Using integrated terminal**
+   - Open terminal in VS Code (Ctrl+` / Cmd+`)
+   - Navigate to src directory:
+     ```bash
+     cd src
+     ```
+   - Run the server:
+     ```bash
+     python -m uvicorn api:app --reload --host 0.0.0.0 --port 8000
+     ```
+   
+   **Method B: Using VS Code debugger**
+   - Create `.vscode/launch.json` in project root:
+     ```json
+     {
+       "version": "0.2.0",
+       "configurations": [
+         {
+           "name": "Python: FastAPI",
+           "type": "python",
+           "request": "launch",
+           "module": "uvicorn",
+           "args": [
+             "api:app",
+             "--reload",
+             "--host", "0.0.0.0",
+             "--port", "8000"
+           ],
+           "cwd": "${workspaceFolder}/src",
+           "jinja": true,
+           "justMyCode": true,
+           "env": {
+             "PYTHONPATH": "${workspaceFolder}/src"
+           }
+         }
+       ]
+     }
+     ```
+   - Press F5 or go to Run and Debug (Ctrl+Shift+D / Cmd+Shift+D)
+   - Select "Python: FastAPI" and click the green play button
+
+5. **Access the web interface:**
+   - VS Code will show a notification with the URL
+   - Click on `http://localhost:8000` or open it manually in your browser
+   - Alternatively, use the "Simple Browser" extension in VS Code to view it inside the editor
+
+6. **Development features:**
+   - **Auto-reload**: Changes to Python files automatically restart the server
+   - **Debugging**: Set breakpoints in `src/api.py` and step through code
+   - **IntelliSense**: Get code completion and parameter hints
+   - **Error highlighting**: See linting errors in real-time
+
+**VS Code Extensions Recommended:**
+- Python (Microsoft) - Python language support
+- Pylance (Microsoft) - Fast Python language server
+- autopep8 or Black Formatter - Code formatting
+- GitLens - Enhanced Git integration
+
 ## Quickstart (Local Training)
 1) Create env & install deps
 ```bash
