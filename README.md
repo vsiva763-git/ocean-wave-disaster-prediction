@@ -18,6 +18,13 @@ src/
 	train.py             # argparse training entrypoint with callbacks
 	evaluate.py          # reports, confusion matrix, HPI, predictions CSV
 	inference.py         # single-sample inference + optional serial out
+	api.py               # FastAPI service for real-time monitoring
+	realtime/            # Real-time data fetching modules
+		open_meteo.py    # Open-Meteo Marine API client
+		ndbc.py          # NDBC buoy data fetcher
+		usgs_earthquake.py  # USGS earthquake catalog
+		tsunami_bulletins.py  # PTWC/NTWC RSS feeds
+		data_utils.py    # Tensor preparation utilities
 notebooks/
 	multimodal_training.ipynb  # Colab-ready training/eval notebook
 arduino/
@@ -115,6 +122,178 @@ python src/data_fetcher.py --preset bay_of_bengal --start_date 2023-07-01 --end_
 - Sketch: `arduino/wave_alert.ino`.
 - Expects serial messages like `LABEL:GIANT;HPI:0.87;P_GIANT:0.92` from `src/inference.py` with `--serial_port` set.
 - Displays risk on 16×2 LCD, buzzes for MODERATE/GIANT, sends SMS via SIM800L for GIANT.
+
+## Real-Time Data Pipeline and Monitoring API
+
+### Overview
+The real-time monitoring system fetches live oceanographic data from free APIs and provides REST endpoints for disaster prediction and tsunami monitoring.
+
+### Data Sources
+- **Open-Meteo Marine API**: Wave height, direction, period, wind speed/direction forecasts
+- **NOAA NDBC**: Real-time buoy observations from National Data Buoy Center
+- **USGS Earthquake Catalog**: Recent earthquake events (potential tsunami triggers)
+- **PTWC/NTWC**: Authoritative tsunami bulletins from Pacific and National Tsunami Warning Centers
+
+### Quick Start (FastAPI Service)
+
+1) Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+2) Start the API server:
+```bash
+# From project root
+cd src
+python -m uvicorn api:app --reload --host 0.0.0.0 --port 8000
+```
+
+3) Access the API:
+- Interactive docs: http://localhost:8000/docs
+- Root endpoint: http://localhost:8000/
+
+### API Endpoints
+
+#### `/predict` - Live Prediction
+Generate real-time wave disaster predictions for a location:
+```bash
+curl "http://localhost:8000/predict?latitude=36.78&longitude=-122.40"
+```
+
+Response:
+```json
+{
+  "predicted_class": "NORMAL",
+  "hazard_probability_index": 0.1234,
+  "probabilities": {
+    "NORMAL": 0.85,
+    "MODERATE": 0.12,
+    "GIANT": 0.03
+  },
+  "confidence": 0.85,
+  "location": {"latitude": 36.78, "longitude": -122.40},
+  "data_sources": {"open_meteo": true, "ndbc": true}
+}
+```
+
+Optional parameters:
+- `use_ndbc`: Enable NDBC buoy data (default: true)
+- `model_path`: Path to trained model (uses mock prediction if not provided)
+- `scaler_path`: Path to feature scaler
+
+#### `/bulletins` - Tsunami Warnings
+Fetch authoritative tsunami bulletins:
+```bash
+curl "http://localhost:8000/bulletins?active_only=true"
+```
+
+Parameters:
+- `sources`: Comma-separated list (ptwc, ntwc)
+- `active_only`: Filter for active warnings/advisories only
+
+#### `/earthquakes` - Recent Seismic Activity
+Get recent earthquakes with tsunami potential:
+```bash
+curl "http://localhost:8000/earthquakes?min_magnitude=6.0&tsunami_risk_only=true&target_lat=36.78&target_lon=-122.40"
+```
+
+Parameters:
+- `min_magnitude`: Minimum magnitude (default: 5.0)
+- `hours_back`: Hours of history (default: 24)
+- `tsunami_risk_only`: Filter for tsunami-capable events
+- `target_lat`, `target_lon`: Calculate tsunami ETA to this location
+
+#### `/marine-data` - Raw Ocean Data
+Fetch raw marine observations/forecasts:
+```bash
+# Open-Meteo forecast
+curl "http://localhost:8000/marine-data?latitude=36.78&longitude=-122.40&source=open-meteo"
+
+# NDBC buoy data
+curl "http://localhost:8000/marine-data?latitude=36.78&longitude=-122.40&source=ndbc&station_id=46042"
+```
+
+#### `/health` - Health Check
+```bash
+curl "http://localhost:8000/health"
+```
+
+### Usage Examples
+
+#### Python Client
+```python
+import httpx
+
+# Get live prediction
+response = httpx.get(
+    "http://localhost:8000/predict",
+    params={"latitude": 36.78, "longitude": -122.40}
+)
+prediction = response.json()
+print(f"Hazard Level: {prediction['predicted_class']}")
+print(f"Hazard Index: {prediction['hazard_probability_index']:.3f}")
+
+# Check for tsunami warnings
+response = httpx.get(
+    "http://localhost:8000/bulletins",
+    params={"active_only": True}
+)
+bulletins = response.json()
+if bulletins['count'] > 0:
+    print(f"⚠️  {bulletins['count']} active tsunami bulletin(s)")
+```
+
+#### JavaScript/Fetch
+```javascript
+// Get prediction
+fetch('http://localhost:8000/predict?latitude=36.78&longitude=-122.40')
+  .then(res => res.json())
+  .then(data => {
+    console.log(`Risk Level: ${data.predicted_class}`);
+    console.log(`Hazard Index: ${data.hazard_probability_index}`);
+  });
+
+// Monitor earthquakes
+fetch('http://localhost:8000/earthquakes?tsunami_risk_only=true')
+  .then(res => res.json())
+  .then(data => {
+    console.log(`${data.count} tsunami-capable earthquakes in last 24h`);
+  });
+```
+
+### Data Fetcher Modules (Python API)
+
+You can also use the data fetchers directly in Python:
+
+```python
+from src.realtime.open_meteo import fetch_open_meteo_marine, prepare_wave_features
+from src.realtime.ndbc import fetch_ndbc_latest, find_nearest_station
+from src.realtime.usgs_earthquake import fetch_usgs_earthquakes
+from src.realtime.tsunami_bulletins import fetch_tsunami_bulletins
+
+# Fetch marine forecast
+marine_data = fetch_open_meteo_marine(latitude=36.78, longitude=-122.40)
+wave_features = prepare_wave_features(marine_data)
+
+# Find and fetch from nearest buoy
+station = find_nearest_station(36.78, -122.40)
+if station:
+    buoy_data = fetch_ndbc_latest(station, data_type="txt")
+
+# Get recent earthquakes
+earthquakes = fetch_usgs_earthquakes(min_magnitude=5.0, hours_back=24)
+
+# Fetch tsunami bulletins
+bulletins = fetch_tsunami_bulletins(sources=["ptwc", "ntwc"])
+```
+
+### Deployment Notes
+
+- **Production**: Use a production ASGI server (gunicorn + uvicorn workers)
+- **Model**: Provide `model_path` and `scaler_path` query parameters or configure as environment variables
+- **Rate Limits**: External APIs have rate limits; implement caching for production use
+- **Authentication**: Add API key authentication for production deployments
+- **CORS**: Enable CORS if serving web clients from different domains
 
 ## Reproducibility Tips
 - Set `--seed` flag during training.
