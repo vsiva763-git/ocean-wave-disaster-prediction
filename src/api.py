@@ -4,11 +4,14 @@ Provides REST API endpoints for:
 - Live predictions using real-time data
 - Tsunami bulletin aggregation
 - Health monitoring
+- Web interface for visualization
 """
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -16,7 +19,8 @@ import pandas as pd
 
 try:
     from fastapi import FastAPI, HTTPException, Query
-    from fastapi.responses import JSONResponse
+    from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+    from fastapi.staticfiles import StaticFiles
 except ImportError:
     raise ImportError("FastAPI is required. Install with: pip install fastapi uvicorn")
 
@@ -46,12 +50,22 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger(__name__)
 
+# Get project root directory
+PROJECT_ROOT = Path(__file__).parent.parent
+WEB_DIR = PROJECT_ROOT / "web"
+STATIC_DIR = WEB_DIR / "static"
+TEMPLATES_DIR = WEB_DIR / "templates"
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Ocean Wave Disaster Prediction API",
     description="Real-time monitoring and prediction service for ocean wave disasters",
     version="1.0.0",
 )
+
+# Mount static files directory
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Global model instance (loaded on startup)
 MODEL = None
@@ -70,25 +84,33 @@ async def startup_event():
     """Initialize model on startup (if available)."""
     global MODEL, SCALER_PATH
     LOGGER.info("Starting Ocean Wave Disaster Prediction API")
+    LOGGER.info(f"Web interface directory: {WEB_DIR}")
     # Model loading will be handled by the /predict endpoint
     # This allows the API to run even without a trained model
 
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    """Root endpoint with API information."""
-    return {
-        "service": "Ocean Wave Disaster Prediction API",
-        "version": "1.0.0",
-        "status": "operational",
-        "endpoints": {
-            "health": "/health",
-            "predict": "/predict",
-            "bulletins": "/bulletins",
-            "earthquakes": "/earthquakes",
-            "marine_data": "/marine-data",
-        },
-    }
+    """Serve the web interface."""
+    index_file = TEMPLATES_DIR / "index.html"
+    if index_file.exists():
+        with open(index_file, 'r') as f:
+            return HTMLResponse(content=f.read())
+    else:
+        # Fallback to API info if web interface not available
+        return JSONResponse({
+            "service": "Ocean Wave Disaster Prediction API",
+            "version": "1.0.0",
+            "status": "operational",
+            "endpoints": {
+                "health": "/health",
+                "predict": "/predict",
+                "bulletins": "/bulletins",
+                "earthquakes": "/earthquakes",
+                "marine_data": "/marine-data",
+            },
+            "note": "Web interface not found. Access API documentation at /docs"
+        })
 
 
 @app.get("/health")

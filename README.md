@@ -18,13 +18,20 @@ src/
 	train.py             # argparse training entrypoint with callbacks
 	evaluate.py          # reports, confusion matrix, HPI, predictions CSV
 	inference.py         # single-sample inference + optional serial out
-	api.py               # FastAPI service for real-time monitoring
+	api.py               # FastAPI service for real-time monitoring + web interface
 	realtime/            # Real-time data fetching modules
 		open_meteo.py    # Open-Meteo Marine API client
 		ndbc.py          # NDBC buoy data fetcher
 		usgs_earthquake.py  # USGS earthquake catalog
 		tsunami_bulletins.py  # PTWC/NTWC RSS feeds
 		data_utils.py    # Tensor preparation utilities
+web/
+	templates/           # HTML templates for web interface
+		index.html       # Main web application page
+	static/              # Static assets (CSS, JavaScript)
+		styles.css       # Web interface styling
+		app.js           # Interactive functionality
+	README.md            # Web interface documentation
 notebooks/
 	multimodal_training.ipynb  # Colab-ready training/eval notebook
 arduino/
@@ -54,7 +61,36 @@ graph TD
 	H --> I[Hazard Probability Index]
 ```
 
-## Quickstart (Local)
+## Quickstart (Web Interface)
+
+The easiest way to use the system is through the web interface:
+
+1) Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+2) Start the web server:
+```bash
+cd src
+python -m uvicorn api:app --reload --host 0.0.0.0 --port 8000
+```
+
+3) Open your browser:
+```
+http://localhost:8000
+```
+
+4) Use the interface:
+- **Click on the interactive map** to select any ocean location
+- **Use preset buttons** for quick access to major oceans (Bay of Bengal, Arabian Sea, etc.)
+- **Enter custom coordinates** manually for precise locations
+- **View real-time predictions** with hazard levels and probability scores
+- **Monitor tsunami activity** with recent earthquakes and official bulletins
+
+See `web/README.md` for detailed web interface documentation.
+
+## Quickstart (Local Training)
 1) Create env & install deps
 ```bash
 python -m venv .venv && source .venv/bin/activate

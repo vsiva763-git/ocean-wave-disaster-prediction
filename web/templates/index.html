@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ocean Wave Disaster Prediction System</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌊 Ocean Wave Disaster Prediction System</h1>
+            <p class="subtitle">Multi-Modal CNN + LSTM Hybrid Architecture for Real-Time Ocean Monitoring</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Panel: Map and Controls -->
+            <div class="left-panel">
+                <div class="control-panel">
+                    <h2>Select Location</h2>
+                    <div class="location-presets">
+                        <button class="preset-btn" onclick="selectPreset('bay-of-bengal')">Bay of Bengal</button>
+                        <button class="preset-btn" onclick="selectPreset('arabian-sea')">Arabian Sea</button>
+                        <button class="preset-btn" onclick="selectPreset('pacific-ocean')">Pacific Ocean</button>
+                        <button class="preset-btn" onclick="selectPreset('atlantic-ocean')">Atlantic Ocean</button>
+                        <button class="preset-btn" onclick="selectPreset('indian-ocean')">Indian Ocean</button>
+                    </div>
+                    
+                    <div class="custom-location">
+                        <h3>Or Enter Custom Coordinates</h3>
+                        <div class="input-group">
+                            <label>Latitude:</label>
+                            <input type="number" id="latitude" step="0.01" placeholder="e.g., 36.78" />
+                        </div>
+                        <div class="input-group">
+                            <label>Longitude:</label>
+                            <input type="number" id="longitude" step="0.01" placeholder="e.g., -122.40" />
+                        </div>
+                        <button class="btn btn-primary" onclick="getPrediction()">Get Prediction</button>
+                    </div>
+                </div>
+
+                <div class="map-container">
+                    <h3>Interactive Map - Click to Select Location</h3>
+                    <div id="map"></div>
+                    <p class="map-info">Click anywhere on the map to get predictions for that location</p>
+                </div>
+            </div>
+
+            <!-- Right Panel: Results -->
+            <div class="right-panel">
+                <!-- Current Prediction -->
+                <div class="results-section">
+                    <h2>Current Ocean Conditions & Prediction</h2>
+                    <div id="loading" class="loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Fetching real-time data...</p>
+                    </div>
+                    <div id="prediction-results" class="prediction-results" style="display: none;">
+                        <div class="location-info">
+                            <h3 id="location-name">Selected Location</h3>
+                            <p id="coordinates"></p>
+                        </div>
+                        
+                        <div class="hazard-level">
+                            <h3>Hazard Level</h3>
+                            <div id="hazard-badge" class="badge"></div>
+                            <div class="hpi-container">
+                                <label>Hazard Probability Index (HPI):</label>
+                                <div class="hpi-bar">
+                                    <div id="hpi-fill" class="hpi-fill"></div>
+                                </div>
+                                <span id="hpi-value" class="hpi-value"></span>
+                            </div>
+                        </div>
+
+                        <div class="probabilities">
+                            <h3>Class Probabilities</h3>
+                            <div class="prob-item">
+                                <span class="prob-label normal">NORMAL</span>
+                                <div class="prob-bar">
+                                    <div id="prob-normal" class="prob-fill normal-fill"></div>
+                                </div>
+                                <span id="prob-normal-val" class="prob-value">0%</span>
+                            </div>
+                            <div class="prob-item">
+                                <span class="prob-label moderate">MODERATE</span>
+                                <div class="prob-bar">
+                                    <div id="prob-moderate" class="prob-fill moderate-fill"></div>
+                                </div>
+                                <span id="prob-moderate-val" class="prob-value">0%</span>
+                            </div>
+                            <div class="prob-item">
+                                <span class="prob-label giant">GIANT</span>
+                                <div class="prob-bar">
+                                    <div id="prob-giant" class="prob-fill giant-fill"></div>
+                                </div>
+                                <span id="prob-giant-val" class="prob-value">0%</span>
+                            </div>
+                        </div>
+
+                        <div class="data-sources">
+                            <h4>Data Sources</h4>
+                            <div id="sources-info"></div>
+                            <p class="timestamp" id="timestamp"></p>
+                        </div>
+                    </div>
+                    <div id="error-message" class="error-message" style="display: none;"></div>
+                </div>
+
+                <!-- Past Tsunami Data -->
+                <div class="results-section">
+                    <h2>Recent Tsunami Activity & Seismic Events</h2>
+                    <div class="tabs">
+                        <button class="tab-btn active" onclick="showTab('earthquakes')">Earthquakes</button>
+                        <button class="tab-btn" onclick="showTab('bulletins')">Tsunami Bulletins</button>
+                    </div>
+                    
+                    <div id="earthquakes-tab" class="tab-content active">
+                        <div class="filter-controls">
+                            <label>Min Magnitude: <input type="number" id="min-magnitude" value="5.0" step="0.1" /></label>
+                            <label><input type="checkbox" id="tsunami-only" /> Tsunami Risk Only</label>
+                            <button class="btn btn-secondary" onclick="getEarthquakes()">Refresh</button>
+                        </div>
+                        <div id="earthquakes-list" class="events-list">
+                            <p>Click "Refresh" to load recent earthquake data</p>
+                        </div>
+                    </div>
+                    
+                    <div id="bulletins-tab" class="tab-content">
+                        <div class="filter-controls">
+                            <label><input type="checkbox" id="active-only" checked /> Active Warnings Only</label>
+                            <button class="btn btn-secondary" onclick="getBulletins()">Refresh</button>
+                        </div>
+                        <div id="bulletins-list" class="events-list">
+                            <p>Click "Refresh" to load tsunami bulletins</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Powered by Multi-Modal CNN + LSTM Architecture | Data sources: Open-Meteo, NDBC, USGS, NOAA</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>
