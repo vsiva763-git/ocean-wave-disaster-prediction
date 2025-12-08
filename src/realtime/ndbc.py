@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from math import radians, sin, cos, asin, sqrt
 from typing import Dict, List, Optional
 
 try:
@@ -87,7 +88,7 @@ def fetch_ndbc_latest(
             if col not in ['#YY', 'YY', 'MM', 'DD', 'hh', 'mm']:
                 try:
                     df[col] = pd.to_numeric(df[col], errors='coerce')
-                except:
+                except Exception:
                     pass
         
         # Create timestamp from date/time columns
@@ -222,8 +223,6 @@ def find_nearest_station(
         "41010": (28.878, -78.485),   # Canaveral East, FL
         "44025": (40.251, -73.164),   # Long Island, NY
     }
-    
-    from math import radians, sin, cos, asin, sqrt
     
     def haversine(lat1, lon1, lat2, lon2):
         """Calculate distance between two points on Earth in km."""

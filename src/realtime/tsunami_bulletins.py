@@ -7,6 +7,7 @@ Fetches authoritative tsunami warnings and advisories from:
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -115,18 +116,14 @@ def fetch_ntwc_bulletins() -> List[Dict]:
 def _parse_published_date(entry: Dict) -> datetime:
     """Parse published date from RSS entry."""
     if "published_parsed" in entry and entry.published_parsed:
-        import time
         return datetime(*entry.published_parsed[:6])
     elif "published" in entry:
-        try:
-            # Try various date formats
-            for fmt in ["%a, %d %b %Y %H:%M:%S %Z", "%Y-%m-%dT%H:%M:%S%z"]:
-                try:
-                    return datetime.strptime(entry.published, fmt)
-                except ValueError:
-                    continue
-        except:
-            pass
+        # Try various date formats
+        for fmt in ["%a, %d %b %Y %H:%M:%S %Z", "%Y-%m-%dT%H:%M:%S%z"]:
+            try:
+                return datetime.strptime(entry.published, fmt)
+            except ValueError:
+                continue
     return datetime.utcnow()
 
 

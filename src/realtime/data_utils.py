@@ -52,7 +52,7 @@ def prepare_sequence_tensor(
     feature_data = data[feature_columns].copy()
     
     # Handle missing values
-    feature_data = feature_data.interpolate(method='linear').fillna(method='bfill').fillna(method='ffill').fillna(0.0)
+    feature_data = feature_data.interpolate(method='linear').bfill().ffill().fillna(0.0)
     
     # Take the most recent seq_len timesteps
     if len(feature_data) < seq_len:

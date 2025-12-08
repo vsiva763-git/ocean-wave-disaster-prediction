@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from math import radians, sin, cos, asin, sqrt
 from typing import Dict, List, Optional
 
 try:
@@ -173,8 +174,6 @@ def calculate_tsunami_arrival_estimate(
             - eta_hours: Estimated time of arrival in hours
             - eta_minutes: Estimated time of arrival in minutes
     """
-    from math import radians, sin, cos, asin, sqrt
-    
     def haversine(lat1, lon1, lat2, lon2):
         """Calculate distance between two points on Earth in km."""
         lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])

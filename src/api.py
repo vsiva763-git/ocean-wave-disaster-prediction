@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import numpy as np
+import pandas as pd
 
 try:
     from fastapi import FastAPI, HTTPException, Query
@@ -419,10 +420,6 @@ def _mock_prediction(data: "pd.DataFrame") -> np.ndarray:
         probs = np.array([0.60, 0.30, 0.10])
     
     return probs
-
-
-# Import pandas here to avoid circular import
-import pandas as pd
 
 
 if __name__ == "__main__":

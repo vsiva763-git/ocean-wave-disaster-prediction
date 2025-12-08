@@ -3,7 +3,7 @@
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from realtime.open_meteo import fetch_open_meteo_marine, prepare_wave_features
 from realtime.ndbc import find_nearest_station, fetch_ndbc_latest, prepare_ndbc_features
