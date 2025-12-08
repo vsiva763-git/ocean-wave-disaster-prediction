@@ -325,6 +325,8 @@ async def get_marine_data(
             if data.empty:
                 return {
                     "source": "open-meteo",
+                    "location": {"latitude": latitude, "longitude": longitude},
+                    "count": 0,
                     "data": [],
                     "timestamp": datetime.utcnow().isoformat(),
                 }
@@ -360,6 +362,7 @@ async def get_marine_data(
                 return {
                     "source": "ndbc",
                     "station_id": station_id,
+                    "count": 0,
                     "data": [],
                     "timestamp": datetime.utcnow().isoformat(),
                 }
