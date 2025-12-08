@@ -65,6 +65,20 @@ graph TD
 
 The easiest way to use the system is through the web interface:
 
+### Option 1: One-Command Start (Recommended)
+
+**Linux/Mac:**
+```bash
+./start_web.sh
+```
+
+**Windows:**
+```bash
+start_web.bat
+```
+
+### Option 2: Manual Start
+
 1) Install dependencies:
 ```bash
 pip install -r requirements.txt
@@ -81,7 +95,8 @@ python -m uvicorn api:app --reload --host 0.0.0.0 --port 8000
 http://localhost:8000
 ```
 
-4) Use the interface:
+### Using the Interface
+
 - **Click on the interactive map** to select any ocean location
 - **Use preset buttons** for quick access to major oceans (Bay of Bengal, Arabian Sea, etc.)
 - **Enter custom coordinates** manually for precise locations
