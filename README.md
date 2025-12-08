@@ -2,6 +2,7 @@
 
 A **Multimodal CNN-LSTM Hybrid Deep Learning System** for real-time ocean wave prediction and tsunami disaster early warning, focused on the **Kanyakumari coastal region** of India.
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/vsiva763-git/ocean-wave-disaster-prediction/blob/main/notebooks/kanyakumari_ocean_prediction_colab.ipynb)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.13+-orange.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)
