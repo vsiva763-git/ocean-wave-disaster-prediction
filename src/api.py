@@ -396,7 +396,7 @@ async def get_marine_data(
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-def _mock_prediction(data: "pd.DataFrame") -> np.ndarray:
+def _mock_prediction(data: pd.DataFrame) -> np.ndarray:
     """Generate mock prediction based on data characteristics.
     
     This is used when no trained model is available.
