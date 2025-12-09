@@ -59,24 +59,24 @@ class ModelConfig:
     # Image input (for satellite/radar imagery)
     image_size: Tuple[int, int] = (128, 128)
     image_channels: int = 3
-    
+
     # Sequence input (time series data)
     seq_len: int = 24  # 24 hours of hourly data
     seq_features: int = 8  # Number of ocean/weather parameters
-    
+
     # Feature columns for time series
     feature_columns: List[str] = None
-    
+
     # Model architecture
     cnn_backbone: str = "simple"  # "simple" or "mobilenet_v2"
     lstm_units: List[int] = None
     dense_units: List[int] = None
     dropout_rate: float = 0.3
-    
+
     # Output classes
     num_classes: int = 4  # NORMAL, MODERATE, HIGH_RISK, TSUNAMI_WARNING
     class_names: List[str] = None
-    
+
     def __post_init__(self):
         if self.feature_columns is None:
             self.feature_columns = [
@@ -89,15 +89,16 @@ class ModelConfig:
                 "swell_height",         # Swell wave height (m)
                 "pressure",             # Atmospheric pressure (hPa)
             ]
-        
+
         if self.lstm_units is None:
             self.lstm_units = [128, 64]
-        
+
         if self.dense_units is None:
             self.dense_units = [128, 64]
-        
+
         if self.class_names is None:
-            self.class_names = ["NORMAL", "MODERATE", "HIGH_RISK", "TSUNAMI_WARNING"]
+            self.class_names = ["NORMAL", "MODERATE",
+                                "HIGH_RISK", "TSUNAMI_WARNING"]
 
 
 @dataclass
@@ -106,12 +107,12 @@ class APIConfig:
     host: str = "0.0.0.0"
     port: int = 8000
     debug: bool = False
-    
+
     # Data refresh intervals (seconds)
     marine_data_refresh: int = 3600  # 1 hour
     earthquake_refresh: int = 300    # 5 minutes
     bulletin_refresh: int = 600      # 10 minutes
-    
+
     # Alert thresholds
     wave_height_moderate: float = 2.5   # meters
     wave_height_high: float = 4.0       # meters
