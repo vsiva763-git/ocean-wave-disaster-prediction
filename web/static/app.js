@@ -342,7 +342,7 @@ function updatePrediction(prediction) {
   if (!prediction) return;
 
   // Wave severity
-  const severity = prediction.wave_severity || "NORMAL";
+  const severity = String(prediction.wave_severity || "NORMAL");
   const severityElement = document.getElementById("wave-severity");
   if (severityElement) {
     severityElement.textContent = severity;
@@ -350,7 +350,7 @@ function updatePrediction(prediction) {
   }
 
   // Tsunami risk
-  const tsunamiRisk = prediction.tsunami_risk || "NONE";
+  const tsunamiRisk = String(prediction.tsunami_risk || "NONE");
   const riskElement = document.getElementById("tsunami-risk");
   if (riskElement) {
     riskElement.textContent = tsunamiRisk;
