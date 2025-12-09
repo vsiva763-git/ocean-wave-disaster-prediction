@@ -399,12 +399,13 @@ function updatePrediction(prediction) {
 function updateProbabilityBar(elementId, value) {
   const bar = document.getElementById(elementId);
   const valueEl = document.getElementById(elementId + "-val");
+  const numValue = Number(value || 0);
 
   if (bar) {
-    bar.style.width = value * 100 + "%";
+    bar.style.width = numValue * 100 + "%";
   }
   if (valueEl) {
-    valueEl.textContent = (value * 100).toFixed(1) + "%";
+    valueEl.textContent = (numValue * 100).toFixed(1) + "%";
   }
 }
 
@@ -515,7 +516,7 @@ function updateRiskAssessment(risk) {
   }
 
   // Update score
-  updateElement("risk-score", score.toFixed(2));
+  updateElement("risk-score", Number(score || 0).toFixed(2));
 
   // Update recommendation
   updateElement("recommendation", recommendation);
