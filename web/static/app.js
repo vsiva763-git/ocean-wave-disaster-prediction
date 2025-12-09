@@ -358,11 +358,11 @@ function updatePrediction(prediction) {
   }
 
   // Hazard index
-  const hazardIndex = prediction.hazard_index || 0;
+  const hazardIndex = Number(prediction.hazard_index || 0);
   updateElement("hazard-index-value", hazardIndex.toFixed(3));
 
   // Confidence
-  const confidence = (prediction.confidence || 0) * 100;
+  const confidence = Number(prediction.confidence || 0) * 100;
   updateElement("confidence-value", confidence.toFixed(0) + "%");
   const confidenceFill = document.getElementById("confidence-fill");
   if (confidenceFill) {
