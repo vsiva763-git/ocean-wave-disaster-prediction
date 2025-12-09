@@ -14,7 +14,7 @@ A **Multimodal CNN-LSTM Hybrid Deep Learning System** for real-time ocean wave p
 **Kanyakumari** (8.0883°N, 77.5385°E) is the southernmost tip of the Indian subcontinent, where three water bodies converge:
 
 - 🌊 **Arabian Sea** (West)
-- 🌊 **Bay of Bengal** (East)  
+- 🌊 **Bay of Bengal** (East)
 - 🌊 **Indian Ocean** (South)
 
 ---
@@ -22,18 +22,21 @@ A **Multimodal CNN-LSTM Hybrid Deep Learning System** for real-time ocean wave p
 ## 🎯 Features
 
 ### 🧠 Deep Learning Model
+
 - **Multimodal CNN-LSTM Hybrid Architecture**
 - Bidirectional LSTM with attention mechanism
 - Multi-task learning for wave severity and tsunami risk prediction
 
 ### 📡 Real-Time Data Sources
-| Source | Data | Update Frequency |
-|--------|------|------------------|
-| **Open-Meteo Marine API** | Wave height, period, direction | Hourly |
-| **Open-Meteo Weather API** | Temperature, wind, pressure | Hourly |
-| **USGS Earthquake Catalog** | Seismic events | Real-time |
+
+| Source                      | Data                           | Update Frequency |
+| --------------------------- | ------------------------------ | ---------------- |
+| **Open-Meteo Marine API**   | Wave height, period, direction | Hourly           |
+| **Open-Meteo Weather API**  | Temperature, wind, pressure    | Hourly           |
+| **USGS Earthquake Catalog** | Seismic events                 | Real-time        |
 
 ### 🖥️ Web Dashboard
+
 - Real-time monitoring interface
 - Interactive map with Leaflet.js
 - Live charts with Chart.js
@@ -44,6 +47,7 @@ A **Multimodal CNN-LSTM Hybrid Deep Learning System** for real-time ocean wave p
 ## 🚀 Quick Start
 
 ### Option 1: Run in Google Colab (Recommended)
+
 Click the badge above or open: [Run in Colab](https://colab.research.google.com/github/vsiva763-git/ocean-wave-disaster-prediction/blob/main/notebooks/run_from_src.ipynb)
 
 ### Option 2: Run Locally
@@ -91,13 +95,13 @@ ocean-wave-disaster-prediction/
 
 ## 🔗 API Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /` | Web Dashboard |
-| `GET /api/status` | System status |
-| `GET /api/marine-data` | Current wave data |
-| `GET /api/weather` | Weather conditions |
-| `GET /api/prediction` | AI predictions |
+| Endpoint               | Description        |
+| ---------------------- | ------------------ |
+| `GET /`                | Web Dashboard      |
+| `GET /api/status`      | System status      |
+| `GET /api/marine-data` | Current wave data  |
+| `GET /api/weather`     | Weather conditions |
+| `GET /api/prediction`  | AI predictions     |
 | `GET /api/earthquakes` | Recent earthquakes |
 
 ---
